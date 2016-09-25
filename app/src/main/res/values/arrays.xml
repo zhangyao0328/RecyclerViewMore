@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string-array name="titles">
+        <item>@string/page_one</item>
+        <item>@string/page_two</item>
+        <item>@string/page_three</item>
+    </string-array>
+
+</resources>
