@@ -2,6 +2,7 @@ package com.recyclerviewmore.fragment;
 
 import android.os.Handler;
 import android.support.v4.widget.SwipeRefreshLayout;
+import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.LinearLayoutManager;
 
 import com.recyclerviewmore.R;
@@ -39,7 +40,7 @@ public class FragmentOne extends BaseFrgment implements LoadMoreListener, SwipeR
     public void init() {
 
         mSwipRefreshLayout.setOnRefreshListener(this);
-        mRecyclerView.setHasFixedSize(true);
+        mRecyclerView.setLayoutManager(new GridLayoutManager(getActivity(), 3));
         mRecyclerView.setLayoutManager(new LinearLayoutManager(getActivity()));
         adapter = new FragmentOneAdapter(getActivity());
         mRecyclerView.setAdapter(adapter);
@@ -52,6 +53,9 @@ public class FragmentOne extends BaseFrgment implements LoadMoreListener, SwipeR
         new Handler().postDelayed(new Runnable() {
             @Override
             public void run() {
+                if(mSwipRefreshLayout.isRefreshing()){
+                    mSwipRefreshLayout.setRefreshing(false);
+                }
                 adapter.addItems(initData());
                 mRecyclerView.loadMoreComplete();
             }
@@ -63,6 +67,9 @@ public class FragmentOne extends BaseFrgment implements LoadMoreListener, SwipeR
         new Handler().postDelayed(new Runnable() {
             @Override
             public void run() {
+                if (mRecyclerView.isLoadingData){
+                    mRecyclerView.loadMoreComplete();
+                }
                 adapter.resetItems(initData());
                 mSwipRefreshLayout.setRefreshing(false);
             }

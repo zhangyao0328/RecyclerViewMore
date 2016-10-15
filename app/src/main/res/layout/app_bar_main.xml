@@ -16,15 +16,15 @@
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
             android:background="?attr/colorPrimary"
-            app:popupTheme="@style/AppTheme.PopupOverlay"
             app:layout_scrollFlags="scroll|enterAlways"
-            />
+            app:popupTheme="@style/AppTheme.PopupOverlay" />
 
         <com.gigamole.library.navigationtabstrip.NavigationTabStrip
             android:id="@+id/nts_bottom"
             android:layout_width="match_parent"
             android:layout_height="50dp"
             android:layout_gravity="center"
+            android:background="@color/black_page_bg"
             app:nts_active_color="#fff"
             app:nts_color="@color/pink"
             app:nts_corners_radius="1.5dp"
@@ -32,18 +32,11 @@
             app:nts_inactive_color="#81ffffff"
             app:nts_titles="@array/titles"
             app:nts_typeface="fonts/drugs.otf"
-            app:nts_weight="3dp"
-            android:background="@color/black_page_bg"
-            />
+            app:nts_weight="3dp" />
 
     </android.support.design.widget.AppBarLayout>
 
-    <!--<include layout="@layout/content_main" />-->
-
-    <android.support.v4.view.ViewPager
-        android:id="@+id/vp"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
+    <include layout="@layout/content_main"
         app:layout_behavior="@string/appbar_scrolling_view_behavior"
         />
 

@@ -29,7 +29,7 @@ public class RecyclerViewUpRefresh extends RecyclerView {
 
     private ListView list;
 
-    private boolean isLoadingData = false;
+    public boolean isLoadingData = false;
     //加载更多布局
     private LoadingMoreFooter loadingMoreFooter;
 
@@ -136,7 +136,6 @@ public class RecyclerViewUpRefresh extends RecyclerView {
     @Override
     public void onScrollStateChanged(int state) {
         super.onScrollStateChanged(state);
-
         if (state == RecyclerView.SCROLL_STATE_IDLE && loadMoreListener != null && !isLoadingData && canloadMore) {
             LayoutManager layoutManager = getLayoutManager();
             int lastVisibleItemPosition;
