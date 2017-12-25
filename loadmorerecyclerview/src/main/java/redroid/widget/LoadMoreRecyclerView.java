@@ -1,19 +1,22 @@
 package redroid.widget;
 
 import android.content.Context;
+import android.support.annotation.IntDef;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.StaggeredGridLayoutManager;
 import android.util.AttributeSet;
 import android.view.Gravity;
-import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 
 /**
  * zhangyao
@@ -52,7 +55,6 @@ public class LoadMoreRecyclerView extends RecyclerView {
         mContext = context;
         FooterView footView = new FooterView(mContext);
         addFootView(footView);
-        footView.setGone();
     }
 
 
@@ -80,20 +82,6 @@ public class LoadMoreRecyclerView extends RecyclerView {
         footerView = view;
     }
 
-    //设置底部加载中效果
-    public void setFooterLoadingView(View view) {
-        if (footerView != null) {
-            footerView.addFootLoadingView(view);
-        }
-    }
-
-    //设置底部到底了布局
-    public void setFootEndView(View view) {
-        if (footerView != null) {
-            footerView.addFootEndView(view);
-        }
-    }
-
     //下拉刷新后初始化底部状态
     public void refreshComplete() {
         if (footerView != null) {
@@ -113,7 +101,7 @@ public class LoadMoreRecyclerView extends RecyclerView {
     //到底了
     public void loadMoreEnd() {
         if (footerView != null) {
-            footerView.setEnd();
+            footerView.showNoMoreDataView();
         }
     }
 
@@ -154,7 +142,7 @@ public class LoadMoreRecyclerView extends RecyclerView {
             if (layoutManager.getChildCount() > 0
                     && lastVisibleItemPosition >= layoutManager.getItemCount() - 1) {
                 if (footerView != null) {
-                    footerView.setVisible();
+                    footerView.showLoadingMoreView();
                 }
                 isLoadingData = true;
                 mLoadMoreListener.onLoadMore();
@@ -208,8 +196,16 @@ public class LoadMoreRecyclerView extends RecyclerView {
     };
 
     static class FooterView extends LinearLayout {
-        private LinearLayout loading_view_layout;
-        private LinearLayout end_layout;
+        private static final int VIEW_STATE_LOADING_MORE = 1;
+        private static final int VIEW_STATE_NO_MORE_DATA = 2;
+
+        @IntDef({VIEW_STATE_LOADING_MORE, VIEW_STATE_NO_MORE_DATA})
+        @Retention(RetentionPolicy.SOURCE)
+        public @interface ViewState {}
+
+        private Context mContext;
+        private View mLoadingMoreView;
+        private View mNoMoreDataView;
 
         public FooterView(Context context) {
             super(context);
@@ -226,53 +222,48 @@ public class LoadMoreRecyclerView extends RecyclerView {
         }
 
         public void initView(Context context) {
+            mContext = context;
             setGravity(Gravity.CENTER);
             setLayoutParams(new ViewGroup.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-            LayoutInflater layoutInflater = LayoutInflater.from(context);
-            View view = layoutInflater.inflate(R.layout.view_footer,
-                    null);
-            loading_view_layout = view.findViewById(R.id.loading_view_layout);
-            end_layout = view.findViewById(R.id.end_layout);
 
-
-            addFootLoadingView(new ProgressBar(context, null, android.R.attr.progressBarStyle));
-
-            TextView textView = new TextView(context);
-            textView.setText("已经到底啦~");
-            addFootEndView(textView);
-
-            addView(view);
+            showLoadingMoreView();
         }
 
+        public void showLoadingMoreView() {
+            removeAllViews();
 
-        //设置底部加载中效果
-        public void addFootLoadingView(View view) {
-            loading_view_layout.removeAllViews();
-            loading_view_layout.addView(view);
+            if (null != mLoadingMoreView) {
+                addView(mLoadingMoreView);
+            } else {
+                ProgressBar progressBar = new ProgressBar(mContext, null, android.R.attr.progressBarStyle);
+                TextView textView = new TextView(mContext);
+                textView.setText("test");
+                addView(progressBar);
+                addView(textView);
+            }
         }
 
-        //设置底部到底了布局
-        public void addFootEndView(View view) {
-            end_layout.removeAllViews();
-            end_layout.addView(view);
+        public void setLoadingMoreView(View view) {
+            mLoadingMoreView = view;
         }
-
 
         //设置已经没有更多数据
-        public void setEnd() {
-            setVisibility(VISIBLE);
-            loading_view_layout.setVisibility(GONE);
-            end_layout.setVisibility(VISIBLE);
+        public void showNoMoreDataView() {
+            removeAllViews();
+
+            if (null != mNoMoreDataView) {
+                addView(mNoMoreDataView);
+            } else {
+                TextView textView = new TextView(mContext);
+                textView.setText("no more data");
+                addView(textView);
+            }
         }
 
-
-        public void setVisible() {
-            setVisibility(VISIBLE);
-            loading_view_layout.setVisibility(VISIBLE);
-            end_layout.setVisibility(GONE);
+        public void setNoMoreDataView(View view) {
+            mNoMoreDataView = view;
         }
-
 
         public void setGone() {
             setVisibility(GONE);
@@ -286,15 +277,15 @@ public class LoadMoreRecyclerView extends RecyclerView {
 
         private LoadMoreRecyclerView recyclerView;
 
-        private FooterView loadingMoreFooter;
+        private FooterView mFooterView;
 
         private static final int DEFAULT = 0;
         private static final int FOOTER = -1;
 
-        public FooterAdapter(LoadMoreRecyclerView loadMoreRecyclerView, FooterView loadingMoreFooter, RecyclerView.Adapter adapter) {
+        public FooterAdapter(LoadMoreRecyclerView loadMoreRecyclerView, FooterView footerView, RecyclerView.Adapter adapter) {
             this.recyclerView = loadMoreRecyclerView;
             this.adapter = adapter;
-            this.loadingMoreFooter = loadingMoreFooter;
+            this.mFooterView = footerView;
         }
 
         @Override
@@ -339,7 +330,7 @@ public class LoadMoreRecyclerView extends RecyclerView {
         @Override
         public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
             if (viewType == FOOTER) {
-                return new SimpleViewHolder(loadingMoreFooter);
+                return new SimpleViewHolder(mFooterView);
             }
             return adapter.onCreateViewHolder(parent, viewType);
         }
