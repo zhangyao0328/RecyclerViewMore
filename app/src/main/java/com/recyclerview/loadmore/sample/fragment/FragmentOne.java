@@ -1,9 +1,13 @@
 package com.recyclerview.loadmore.sample.fragment;
 
+import android.graphics.drawable.GradientDrawable;
 import android.os.Handler;
 import android.support.v4.widget.SwipeRefreshLayout;
+import android.support.v7.widget.DividerItemDecoration;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.LinearLayoutManager;
+import android.util.Log;
+import android.view.Gravity;
 
 import redroid.widget.LoadMoreRecyclerView;
 
@@ -16,6 +20,9 @@ import java.util.List;
 
 import butterknife.BindView;
 
+import static android.content.ContentValues.TAG;
+import static android.support.v7.widget.DividerItemDecoration.VERTICAL;
+
 /**
  * zhangyao
  * 16/9/24
@@ -27,7 +34,7 @@ public class FragmentOne extends BaseFrgment implements LoadMoreRecyclerView.Loa
     @BindView(R.id.recyclerview)
     LoadMoreRecyclerView mRecyclerView;
     @BindView(R.id.swiprefreshlayout)
-    SwipeRefreshLayout mSwipRefreshLayout;
+    SwipeRefreshLayout mSwipeRefreshLayout;
 
     FragmentOneAdapter adapter;
 
@@ -39,24 +46,36 @@ public class FragmentOne extends BaseFrgment implements LoadMoreRecyclerView.Loa
     @Override
     public void init() {
 
-        mSwipRefreshLayout.setOnRefreshListener(this);
+        mSwipeRefreshLayout.setOnRefreshListener(this);
         mRecyclerView.setLayoutManager(new GridLayoutManager(getActivity(), 3));
         mRecyclerView.setLayoutManager(new LinearLayoutManager(getActivity()));
         adapter = new FragmentOneAdapter(getActivity());
         mRecyclerView.setAdapter(adapter);
+        mRecyclerView.addItemDecoration(new DividerItemDecoration(getContext(), VERTICAL));
         adapter.addItems(initData());
         mRecyclerView.setLoadMoreListener(this);
     }
+
+    private int page = 0;
+
     @Override
     public void onLoadMore() {
         new Handler().postDelayed(new Runnable() {
             @Override
             public void run() {
-                if(mSwipRefreshLayout.isRefreshing()){
-                    mSwipRefreshLayout.setRefreshing(false);
+                if(mSwipeRefreshLayout.isRefreshing()){
+                    mSwipeRefreshLayout.setRefreshing(false);
                 }
-                adapter.addItems(initData());
-                mRecyclerView.loadMoreComplete();
+
+                Log.d(TAG, "run: abc");
+
+                if (page < 3) {
+                    adapter.addItems(initData());
+                    mRecyclerView.loadMoreComplete();
+                    page++;
+                } else {
+                    mRecyclerView.showNoMoreDataView();
+                }
             }
         }, 2000);
     }
@@ -70,7 +89,7 @@ public class FragmentOne extends BaseFrgment implements LoadMoreRecyclerView.Loa
                     mRecyclerView.loadMoreComplete();
                 }
                 adapter.resetItems(initData());
-                mSwipRefreshLayout.setRefreshing(false);
+                mSwipeRefreshLayout.setRefreshing(false);
             }
         }, 2000);
     }

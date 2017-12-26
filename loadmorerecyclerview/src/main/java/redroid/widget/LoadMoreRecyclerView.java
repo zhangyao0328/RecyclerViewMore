@@ -1,12 +1,16 @@
 package redroid.widget;
 
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
 import android.content.Context;
+import android.graphics.Color;
 import android.support.annotation.IntDef;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.StaggeredGridLayoutManager;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
@@ -15,8 +19,6 @@ import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
 
 /**
  * zhangyao
@@ -24,6 +26,7 @@ import java.lang.annotation.RetentionPolicy;
  * zhangyao@jiandanxinli.com
  */
 public class LoadMoreRecyclerView extends RecyclerView {
+    private static final String TAG = "LoadMoreRecyclerView";
     private Context mContext;
 
     private LoadMoreListener mLoadMoreListener;
@@ -36,7 +39,7 @@ public class LoadMoreRecyclerView extends RecyclerView {
 
     public boolean isLoadingData = false;
     //加载更多布局
-    private FooterView footerView;
+    private FooterView mFooterView;
 
     public LoadMoreRecyclerView(Context context) {
         this(context, null);
@@ -57,20 +60,29 @@ public class LoadMoreRecyclerView extends RecyclerView {
         addFootView(footView);
     }
 
-
-    //点击监听
-    public void setOnItemClickListener(AdapterView.OnItemClickListener onItemClickListener) {
-        if (mFooterAdapter != null && mFooterAdapter instanceof FooterAdapter) {
-            ((FooterAdapter) mFooterAdapter).setOnItemClickListener(onItemClickListener);
-        }
+    public void enableLoadMore(boolean flag) {
+        mLoadMoreEnabled = flag;
     }
 
-
-    //长按监听
-    public void setOnItemLongClickListener(AdapterView.OnItemLongClickListener listener) {
-        if (mFooterAdapter != null && mFooterAdapter instanceof FooterAdapter) {
-            ((FooterAdapter) mFooterAdapter).setOnItemLongClickListener(listener);
+    public void refreshComplete() {
+        if (mFooterView != null) {
+            mFooterView.setVisibility(GONE);
         }
+        isLoadingData = false;
+    }
+
+    public void loadMoreComplete() {
+        if (mFooterView != null) {
+            mFooterView.setVisibility(GONE);
+        }
+        isLoadingData = false;
+    }
+
+    public void showNoMoreDataView() {
+        if (mFooterView != null) {
+            mFooterView.showNoMoreDataView();
+        }
+        isLoadingData = false;
     }
 
     /**
@@ -79,46 +91,34 @@ public class LoadMoreRecyclerView extends RecyclerView {
      * @param view
      */
     public void addFootView(FooterView view) {
-        footerView = view;
+        mFooterView = view;
     }
 
-    //下拉刷新后初始化底部状态
-    public void refreshComplete() {
-        if (footerView != null) {
-            footerView.setGone();
-        }
-        isLoadingData = false;
-    }
-
-    public void loadMoreComplete() {
-        if (footerView != null) {
-            footerView.setGone();
-        }
-        isLoadingData = false;
-    }
-
-
-    //到底了
-    public void loadMoreEnd() {
-        if (footerView != null) {
-            footerView.showNoMoreDataView();
-        }
-    }
-
-    //设置是否可加载更多
-    public void enableLoadMore(boolean flag) {
-        mLoadMoreEnabled = flag;
-    }
-
-    //设置加载更多监听
+    /**
+     * set load more event callback.
+     *
+     * @param listener
+     */
     public void setLoadMoreListener(LoadMoreListener listener) {
         mLoadMoreListener = listener;
+    }
+
+    public void setOnItemClickListener(AdapterView.OnItemClickListener onItemClickListener) {
+        if (mFooterAdapter != null && mFooterAdapter instanceof FooterAdapter) {
+            ((FooterAdapter) mFooterAdapter).setOnItemClickListener(onItemClickListener);
+        }
+    }
+
+    public void setOnItemLongClickListener(AdapterView.OnItemLongClickListener listener) {
+        if (mFooterAdapter != null && mFooterAdapter instanceof FooterAdapter) {
+            ((FooterAdapter) mFooterAdapter).setOnItemLongClickListener(listener);
+        }
     }
 
     @Override
     public void setAdapter(Adapter adapter) {
         mAdapter = adapter;
-        mFooterAdapter = new FooterAdapter(this, footerView, adapter);
+        mFooterAdapter = new FooterAdapter(this, mFooterView, adapter);
         super.setAdapter(mFooterAdapter);
         mAdapter.registerAdapterDataObserver(mDataObserver);
     }
@@ -126,6 +126,8 @@ public class LoadMoreRecyclerView extends RecyclerView {
     @Override
     public void onScrollStateChanged(int state) {
         super.onScrollStateChanged(state);
+
+        Log.d(TAG, "onScrollStateChanged: " + (state == RecyclerView.SCROLL_STATE_IDLE && mLoadMoreListener != null && !isLoadingData && mLoadMoreEnabled));
         if (state == RecyclerView.SCROLL_STATE_IDLE && mLoadMoreListener != null && !isLoadingData && mLoadMoreEnabled) {
             LayoutManager layoutManager = getLayoutManager();
             int lastVisibleItemPosition;
@@ -141,15 +143,14 @@ public class LoadMoreRecyclerView extends RecyclerView {
 
             if (layoutManager.getChildCount() > 0
                     && lastVisibleItemPosition >= layoutManager.getItemCount() - 1) {
-                if (footerView != null) {
-                    footerView.showLoadingMoreView();
+                if (mFooterView != null) {
+                    mFooterView.showLoadingMoreView();
                 }
                 isLoadingData = true;
                 mLoadMoreListener.onLoadMore();
             }
         }
     }
-
 
     //取到最后的一个节点
     private int last(int[] lastPositions) {
@@ -195,17 +196,17 @@ public class LoadMoreRecyclerView extends RecyclerView {
         }
     };
 
+
     static class FooterView extends LinearLayout {
         private static final int VIEW_STATE_LOADING_MORE = 1;
         private static final int VIEW_STATE_NO_MORE_DATA = 2;
 
         @IntDef({VIEW_STATE_LOADING_MORE, VIEW_STATE_NO_MORE_DATA})
-        @Retention(RetentionPolicy.SOURCE)
         public @interface ViewState {}
 
         private Context mContext;
-        private View mLoadingMoreView;
-        private View mNoMoreDataView;
+        private LinearLayout mLoadingMoreView;
+        private LinearLayout mNoMoreDataView;
 
         public FooterView(Context context) {
             super(context);
@@ -221,63 +222,118 @@ public class LoadMoreRecyclerView extends RecyclerView {
             initView(context);
         }
 
-        public void initView(Context context) {
+        protected void initView(Context context) {
             mContext = context;
+
+            //default hidden.
+            setVisibility(GONE);
+
             setGravity(Gravity.CENTER);
+            setOrientation(HORIZONTAL);
             setLayoutParams(new ViewGroup.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-
-            showLoadingMoreView();
         }
 
-        public void showLoadingMoreView() {
-            removeAllViews();
+        protected void showLoadingMoreView() {
+            setUpDefaultLoadingMoreView();
+            setViewState(VIEW_STATE_LOADING_MORE);
+            setVisibility(VISIBLE);
+        }
 
-            if (null != mLoadingMoreView) {
+        protected void showNoMoreDataView() {
+            setUpDefaultNoMoreDataView();
+            setViewState(VIEW_STATE_NO_MORE_DATA);
+            setVisibility(VISIBLE);
+
+            Log.d(TAG, "showNoMoreDataView: 111");
+            postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    Log.d(TAG, "showNoMoreDataView: 222");
+                    mNoMoreDataView.animate().translationY(getHeight())
+                            .setDuration(300)
+                            .setListener(new AnimatorListenerAdapter() {
+                                @Override
+                                public void onAnimationEnd(Animator animation) {
+                                    //mNoMoreDataView.setTranslationY(0);
+                                    setVisibility(GONE);
+                                }
+                            });
+                }
+            }, 2000);
+        }
+
+        private void setViewState(@ViewState int viewState) {
+            if (null != mNoMoreDataView)
+                mNoMoreDataView.setVisibility(viewState == VIEW_STATE_NO_MORE_DATA ? VISIBLE : GONE);
+
+            if (null != mLoadingMoreView)
+                mLoadingMoreView.setVisibility(viewState == VIEW_STATE_LOADING_MORE ? VISIBLE : GONE);
+        }
+
+        protected void setLoadingMoreView(View view) {
+            if (view instanceof LinearLayout) {
+                mLoadingMoreView = (LinearLayout) view;
+            } else {
+                mLoadingMoreView.removeAllViews();
+                mLoadingMoreView.addView(view);
+            }
+        }
+
+        protected void setNoMoreDataView(View view) {
+            if (view instanceof LinearLayout) {
+                mNoMoreDataView = (LinearLayout) view;
+            } else {
+                mNoMoreDataView.removeAllViews();
+                mNoMoreDataView.addView(view);
+            }
+        }
+
+        /**
+         * setup the default loading-more view if necessary.
+         */
+        protected void setUpDefaultLoadingMoreView() {
+            if (null == mLoadingMoreView) {
+                mLoadingMoreView = new LinearLayout(mContext);
+
+                ProgressBar progressBar = new ProgressBar(mContext, null, android.R.attr.progressBarStyleSmall);
+                TextView textView = new TextView(mContext);
+                LinearLayout.LayoutParams params = new LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT);
+                params.setMargins(getResources().getDimensionPixelOffset(R.dimen.loading_text_margin), 0, 0, 0);
+                params.gravity = Gravity.CENTER_VERTICAL;
+                textView.setLayoutParams(params);
+                textView.setBackgroundColor(Color.RED);
+                textView.setText(getResources().getString(R.string.loading_more));
+                mLoadingMoreView.addView(progressBar);
+                mLoadingMoreView.addView(textView);
+
                 addView(mLoadingMoreView);
-            } else {
-                ProgressBar progressBar = new ProgressBar(mContext, null, android.R.attr.progressBarStyle);
-                TextView textView = new TextView(mContext);
-                textView.setText("test");
-                addView(progressBar);
-                addView(textView);
             }
         }
 
-        public void setLoadingMoreView(View view) {
-            mLoadingMoreView = view;
-        }
 
-        //设置已经没有更多数据
-        public void showNoMoreDataView() {
-            removeAllViews();
-
-            if (null != mNoMoreDataView) {
+        /**
+         * setup the default no-more-data view if necessary.
+         */
+        protected void setUpDefaultNoMoreDataView() {
+            if (null == mNoMoreDataView) {
+                mNoMoreDataView = new LinearLayout(mContext);
+                TextView textView = new TextView(mContext);
+                textView.setText(getResources().getString(R.string.no_more_data));
+                mNoMoreDataView.addView(textView);
                 addView(mNoMoreDataView);
-            } else {
-                TextView textView = new TextView(mContext);
-                textView.setText("no more data");
-                addView(textView);
             }
         }
-
-        public void setNoMoreDataView(View view) {
-            mNoMoreDataView = view;
-        }
-
-        public void setGone() {
-            setVisibility(GONE);
-        }
-
     }
 
-    public class FooterAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> implements View.OnClickListener, View.OnLongClickListener {
 
+    public static class FooterAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> implements View.OnClickListener, View.OnLongClickListener {
         private RecyclerView.Adapter adapter;
-
         private LoadMoreRecyclerView recyclerView;
-
         private FooterView mFooterView;
+        // TODO: 2017/12/26 get/set
+        public boolean mVisibleFlag;
 
         private static final int DEFAULT = 0;
         private static final int FOOTER = -1;
@@ -350,10 +406,11 @@ public class LoadMoreRecyclerView extends RecyclerView {
 
         @Override
         public int getItemCount() {
+            int itemCount = mVisibleFlag ? 1 : 0;
             if (adapter != null) {
-                return 1 + adapter.getItemCount();
+                return itemCount + adapter.getItemCount();
             } else {
-                return 1;
+                return itemCount;
             }
         }
 
@@ -397,14 +454,12 @@ public class LoadMoreRecyclerView extends RecyclerView {
             return true;
         }
 
-        //点击
         AdapterView.OnItemClickListener onItemClickListener;
 
         public void setOnItemClickListener(AdapterView.OnItemClickListener onItemClickListener) {
             this.onItemClickListener = onItemClickListener;
         }
 
-        //长按
         AdapterView.OnItemLongClickListener onItemLongClickListener;
 
         public void setOnItemLongClickListener(AdapterView.OnItemLongClickListener onItemLongClickListener) {
@@ -418,11 +473,8 @@ public class LoadMoreRecyclerView extends RecyclerView {
         }
     }
 
-    public interface LoadMoreListener {
 
-        /**
-         * loading more
-         */
+    public interface LoadMoreListener {
         void onLoadMore();
     }
 }
