@@ -69,9 +69,9 @@ public class FragmentOne extends BaseFrgment implements LoadMoreRecyclerView.Loa
 
                 Log.d(TAG, "run: abc");
 
-                if (page < 3) {
+                if (page < 1) {
                     adapter.addItems(initData());
-                    mRecyclerView.loadMoreComplete();
+                    mRecyclerView.notifyLoadMoreFinished();
                     page++;
                 } else {
                     mRecyclerView.showNoMoreDataView();
@@ -85,9 +85,10 @@ public class FragmentOne extends BaseFrgment implements LoadMoreRecyclerView.Loa
         new Handler().postDelayed(new Runnable() {
             @Override
             public void run() {
-                if (mRecyclerView.isLoadingData){
-                    mRecyclerView.loadMoreComplete();
+                if (mRecyclerView.isLoadingData()){
+                    mRecyclerView.notifyRefreshEvent();
                 }
+                page = 0;
                 adapter.resetItems(initData());
                 mSwipeRefreshLayout.setRefreshing(false);
             }
