@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">LoadMoreRecyclerView</string>
+    <string name="loading_more">Loading Data&#8230;</string>
+    <string name="no_more_data">No More Data!</string>
+</resources>
